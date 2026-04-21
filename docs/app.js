@@ -20,6 +20,19 @@ const CLASS_COLOR_KEY = {
   ネメシス: "nemesis",
   ニュートラル: "neutral",
 };
+const GUARANTEED_SLOT_INDEX = 7;
+const NORMAL_RATE_INPUTS = [
+  { rarity: "ブロンズレア", inputId: "rateNormalBronze" },
+  { rarity: "シルバーレア", inputId: "rateNormalSilver" },
+  { rarity: "ゴールドレア", inputId: "rateNormalGold" },
+  { rarity: "レジェンド", inputId: "rateNormalLegend" },
+];
+const GUARANTEED_RATE_INPUTS = [
+  { rarity: "ブロンズレア", inputId: "rateGuaranteedBronze" },
+  { rarity: "シルバーレア", inputId: "rateGuaranteedSilver" },
+  { rarity: "ゴールドレア", inputId: "rateGuaranteedGold" },
+  { rarity: "レジェンド", inputId: "rateGuaranteedLegend" },
+];
 
 const state = {
   cards: [],
@@ -33,7 +46,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   bindBaseEvents();
-  updateRateHint();
+  updateRateHints();
   try {
     await loadCardsFromCsv("./data/svwb_cards_ja.csv");
     initPackRows();
@@ -46,8 +59,8 @@ async function init() {
 function bindBaseEvents() {
   document.getElementById("addPackRow").addEventListener("click", () => addPackRow());
   document.getElementById("simulateButton").addEventListener("click", runSimulation);
-  ["rateBronze", "rateSilver", "rateGold", "rateLegend"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", updateRateHint);
+  [...NORMAL_RATE_INPUTS, ...GUARANTEED_RATE_INPUTS].forEach((entry) => {
+    document.getElementById(entry.inputId).addEventListener("input", updateRateHints);
   });
   document.getElementById("resultClassFilter").addEventListener("change", applyResultTableView);
   document.getElementById("resultRaritySort").addEventListener("change", applyResultTableView);
@@ -178,26 +191,50 @@ function collectSetup() {
     ok: true,
     value: {
       cardsPerPack,
-      rarityRates: ratesResult.value.rates,
-      rarityTotalWeight: ratesResult.value.totalWeight,
+      normalRarityRates: ratesResult.value.normal.rates,
+      normalRarityTotalWeight: ratesResult.value.normal.totalWeight,
+      guaranteedRarityRates: ratesResult.value.guaranteed.rates,
+      guaranteedRarityTotalWeight: ratesResult.value.guaranteed.totalWeight,
       plans,
     },
   };
 }
 
 function readRarityRates() {
-  const rates = [
-    { rarity: "ブロンズレア", weight: readNumber("rateBronze") },
-    { rarity: "シルバーレア", weight: readNumber("rateSilver") },
-    { rarity: "ゴールドレア", weight: readNumber("rateGold") },
-    { rarity: "レジェンド", weight: readNumber("rateLegend") },
-  ];
+  const normalResult = readRarityRateGroup(NORMAL_RATE_INPUTS, "通常枠");
+  if (!normalResult.ok) {
+    return normalResult;
+  }
+  const guaranteedResult = readRarityRateGroup(GUARANTEED_RATE_INPUTS, "保証枠");
+  if (!guaranteedResult.ok) {
+    return guaranteedResult;
+  }
+  return {
+    ok: true,
+    value: {
+      normal: normalResult.value,
+      guaranteed: guaranteedResult.value,
+    },
+  };
+}
+
+function readRarityRateGroup(inputDefs, groupLabel) {
+  const rates = inputDefs.map((entry) => ({
+    rarity: entry.rarity,
+    weight: readNumber(entry.inputId),
+  }));
   if (rates.some((entry) => !Number.isFinite(entry.weight) || entry.weight < 0)) {
-    return { ok: false, error: "レアリティ抽選率は 0 以上の数値で入力してください。" };
+    return {
+      ok: false,
+      error: `${groupLabel}の抽選率は 0 以上の数値で入力してください。`,
+    };
   }
   const totalWeight = rates.reduce((sum, entry) => sum + entry.weight, 0);
   if (totalWeight <= 0) {
-    return { ok: false, error: "レアリティ抽選率の合計は 0 より大きくしてください。" };
+    return {
+      ok: false,
+      error: `${groupLabel}の抽選率の合計は 0 より大きくしてください。`,
+    };
   }
   return { ok: true, value: { rates, totalWeight } };
 }
@@ -214,7 +251,11 @@ function simulateDraw(setup) {
     totalOpenedPacks += plan.count;
     for (let packIndex = 0; packIndex < plan.count; packIndex += 1) {
       for (let drawIndex = 0; drawIndex < setup.cardsPerPack; drawIndex += 1) {
-        const rarity = pickRarity(setup.rarityRates, setup.rarityTotalWeight);
+        const isGuaranteedSlot =
+          setup.cardsPerPack > GUARANTEED_SLOT_INDEX && drawIndex === GUARANTEED_SLOT_INDEX;
+        const rarity = isGuaranteedSlot
+          ? pickRarity(setup.guaranteedRarityRates, setup.guaranteedRarityTotalWeight)
+          : pickRarity(setup.normalRarityRates, setup.normalRarityTotalWeight);
         const card = pickCard(plan.packName, rarity);
         if (!card) {
           continue;
@@ -394,17 +435,22 @@ function applyClassColor(element, className) {
   element.classList.add("class-color-cell", `class-color-${classKey}`);
 }
 
-function updateRateHint() {
-  const rates = ["rateBronze", "rateSilver", "rateGold", "rateLegend"].map(readNumber);
+function updateRateHints() {
+  updateRateHintForGroup(NORMAL_RATE_INPUTS, "rateHintNormal", "通常枠");
+  updateRateHintForGroup(GUARANTEED_RATE_INPUTS, "rateHintGuaranteed", "保証枠");
+}
+
+function updateRateHintForGroup(inputDefs, hintId, groupLabel) {
+  const rates = inputDefs.map((entry) => readNumber(entry.inputId));
   const isValid = rates.every((value) => Number.isFinite(value) && value >= 0);
   const total = isValid ? rates.reduce((sum, value) => sum + value, 0) : 0;
-  const rateHint = document.getElementById("rateHint");
+  const rateHint = document.getElementById(hintId);
   if (!isValid) {
-    rateHint.textContent = "抽選率は 0 以上の数値で入力してください。";
+    rateHint.textContent = `${groupLabel}の抽選率は 0 以上の数値で入力してください。`;
     rateHint.style.color = "var(--danger)";
     return;
   }
-  rateHint.textContent = `現在の合計: ${total.toFixed(1)}%（合計100%以外でも実行可能）`;
+  rateHint.textContent = `${groupLabel} 合計: ${total.toFixed(2)}%（合計100%以外でも実行可能）`;
   rateHint.style.color = total <= 0 ? "var(--danger)" : "var(--ink-soft)";
 }
 

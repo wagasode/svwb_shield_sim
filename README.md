@@ -10,6 +10,7 @@
 - `docs/`
   - GitHub Pagesで公開する静的サイト
   - `index.html`, `app.js`, `styles.css`
+  - 初期値は非公式の有力情報ベースの排出率（通常枠/8枚目保証枠）を設定
 
 ## CSV更新
 

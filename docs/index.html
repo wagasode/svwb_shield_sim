@@ -38,13 +38,51 @@
           </label>
           <div class="field">
             <span>レアリティ抽選率（%）</span>
-            <div class="rate-grid">
-              <label>ブロンズ<input id="rateBronze" type="number" min="0" step="0.1" value="70" /></label>
-              <label>シルバー<input id="rateSilver" type="number" min="0" step="0.1" value="24" /></label>
-              <label>ゴールド<input id="rateGold" type="number" min="0" step="0.1" value="5" /></label>
-              <label>レジェンド<input id="rateLegend" type="number" min="0" step="0.1" value="1" /></label>
+            <div class="rate-block">
+              <p class="rate-block-title">通常枠（1〜7枚目）</p>
+              <div class="rate-grid">
+                <label
+                  >ブロンズ<input id="rateNormalBronze" type="number" min="0" step="0.01" value="67.44"
+                /></label>
+                <label
+                  >シルバー<input id="rateNormalSilver" type="number" min="0" step="0.01" value="25"
+                /></label>
+                <label
+                  >ゴールド<input id="rateNormalGold" type="number" min="0" step="0.01" value="6"
+                /></label>
+                <label
+                  >レジェンド<input id="rateNormalLegend" type="number" min="0" step="0.01" value="1.5"
+                /></label>
+              </div>
             </div>
-            <p id="rateHint" class="help-text"></p>
+            <p id="rateHintNormal" class="help-text"></p>
+
+            <div class="rate-block">
+              <p class="rate-block-title">8枚目（シルバー以上保証枠）</p>
+              <div class="rate-grid">
+                <label
+                  >ブロンズ<input id="rateGuaranteedBronze" type="number" min="0" step="0.01" value="0"
+                /></label>
+                <label
+                  >シルバー<input id="rateGuaranteedSilver" type="number" min="0" step="0.01" value="92.44"
+                /></label>
+                <label
+                  >ゴールド<input id="rateGuaranteedGold" type="number" min="0" step="0.01" value="6"
+                /></label>
+                <label
+                  >レジェンド<input
+                    id="rateGuaranteedLegend"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value="1.5"
+                /></label>
+              </div>
+            </div>
+            <p id="rateHintGuaranteed" class="help-text"></p>
+            <p class="help-text">
+              初期値は非公式の有力攻略情報ベースです。8枚未満で開封する場合、保証枠レートは使われません。
+            </p>
           </div>
         </div>
 
