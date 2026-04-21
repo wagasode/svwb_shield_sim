@@ -6,6 +6,7 @@
 
 - `scripts/fetch_svwb_cards_csv.sh`
   - 公式Deck Portal APIからCSVを生成
+  - 出力列: `パック名,カードID,カード名,クラス,レアリティ,公式カードURL`
   - `data/svwb_cards_ja.csv` と `docs/data/svwb_cards_ja.csv` を同期
 - `docs/`
   - GitHub Pagesで公開する静的サイト

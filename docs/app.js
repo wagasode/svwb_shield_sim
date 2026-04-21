@@ -37,6 +37,7 @@ const GUARANTEED_RATE_INPUTS = [
   { rarity: "ゴールドレア", inputId: "rateGuaranteedGold" },
   { rarity: "レジェンド", inputId: "rateGuaranteedLegend" },
 ];
+const OFFICIAL_CARD_URL_PREFIX = "https://shadowverse-wb.com";
 
 const state = {
   cards: [],
@@ -78,12 +79,18 @@ async function loadCardsFromCsv(path) {
 
   const csvText = await response.text();
   const records = parseCsv(csvText)
-    .map((row) => ({
-      packName: cleanValue(row["パック名"]),
-      cardName: cleanValue(row["カード名"]),
-      className: cleanValue(row["クラス"]),
-      rarity: cleanValue(row["レアリティ"]),
-    }))
+    .map((row) => {
+      const cardId = cleanValue(row["カードID"]);
+      const officialCardUrl = cleanValue(row["公式カードURL"]) || buildOfficialCardUrl(cardId);
+      return {
+        packName: cleanValue(row["パック名"]),
+        cardId,
+        cardName: cleanValue(row["カード名"]),
+        className: cleanValue(row["クラス"]),
+        rarity: cleanValue(row["レアリティ"]),
+        officialCardUrl,
+      };
+    })
     .filter((row) => row.packName && row.cardName && row.className && row.rarity);
 
   if (!records.length) {
@@ -282,7 +289,8 @@ function simulateDraw(setup) {
         addCount(byClass, card.className, 1);
         addCount(byRarity, card.rarity, 1);
 
-        const cardKey = [card.packName, card.cardName, card.className, card.rarity].join("\t");
+        const cardKey =
+          card.cardId || [card.packName, card.cardName, card.className, card.rarity].join("\t");
         if (!byCard.has(cardKey)) {
           byCard.set(cardKey, { ...card, count: 0 });
         }
@@ -398,7 +406,7 @@ function renderResultRows(rows) {
     const tr = document.createElement("tr");
     appendCell(tr, String(row.count));
     appendCell(tr, row.packName);
-    appendCell(tr, row.cardName);
+    appendCardCell(tr, row);
     const classCell = appendCell(tr, row.className);
     applyClassColor(classCell, row.className);
     appendCell(tr, row.rarity);
@@ -443,6 +451,24 @@ function appendCell(tr, text) {
   return td;
 }
 
+function appendCardCell(tr, row) {
+  const td = document.createElement("td");
+  const cardUrl = cleanValue(row.officialCardUrl);
+  if (cardUrl) {
+    const link = document.createElement("a");
+    link.href = cardUrl;
+    link.textContent = row.cardName;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "card-link";
+    td.appendChild(link);
+  } else {
+    td.textContent = row.cardName;
+  }
+  tr.appendChild(td);
+  return td;
+}
+
 function applyClassColor(element, className) {
   const classKey = CLASS_COLOR_KEY[className];
   if (!classKey) {
@@ -472,6 +498,14 @@ function updateRateHintForGroup(inputDefs, hintId, groupLabel) {
 
 function readNumber(inputId) {
   return Number.parseFloat(document.getElementById(inputId).value);
+}
+
+function buildOfficialCardUrl(cardId, lang = "ja") {
+  const normalizedCardId = cleanValue(cardId);
+  if (!normalizedCardId) {
+    return "";
+  }
+  return `${OFFICIAL_CARD_URL_PREFIX}/${lang}/deck/cardslist/card/?card_id=${encodeURIComponent(normalizedCardId)}`;
 }
 
 function setStatus(message, isError = false) {

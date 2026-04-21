@@ -310,6 +310,16 @@ th {
   font-weight: 700;
 }
 
+.card-link {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.card-link:hover {
+  color: var(--accent);
+}
+
 .class-color-cell {
   font-weight: 600;
 }

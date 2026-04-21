@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Fetch card list data from SVWB Deck Portal API and export to CSV.
-# Output columns: pack name, card name, class, rarity.
+# Output columns: pack name, card id, card name, class, rarity, official card URL.
 
 BASE_URL="https://shadowverse-wb.com/web/CardList/cardList"
 LANG_CODE="ja"
@@ -32,7 +32,7 @@ for ((offset=PAGE_SIZE; offset<TOTAL_COUNT; offset+=PAGE_SIZE)); do
 done
 
 {
-  printf 'パック名,カード名,クラス,レアリティ\n'
+  printf 'パック名,カードID,カード名,クラス,レアリティ,公式カードURL\n'
   jq -s -r '
     def class_map: {
       "0":"ニュートラル",
@@ -54,14 +54,20 @@ done
     .[] | .data as $d
     | $d.sort_card_id_list[] as $id
     | ($d.card_details[($id|tostring)].common) as $c
+    | ($c.card_id // "") as $card_id
     | [
         ($d.card_set_names[($c.card_set_id|tostring)] // ""),
+        ($card_id),
         ($c.name // ""),
         (class_map[($c.class|tostring)] // ($c.class|tostring)),
-        (rarity_map[($c.rarity|tostring)] // ($c.rarity|tostring))
+        (rarity_map[($c.rarity|tostring)] // ($c.rarity|tostring)),
+        (if ($card_id|tostring|length) > 0
+         then ("https://shadowverse-wb.com/" + $lang + "/deck/cardslist/card/?card_id=" + ($card_id|tostring))
+         else ""
+         end)
       ]
     | @csv
-  ' "$TMP_DIR"/page_*.json
+  ' --arg lang "$LANG_CODE" "$TMP_DIR"/page_*.json
 } > "$OUTPUT_PATH"
 
 echo "Saved: $OUTPUT_PATH"
