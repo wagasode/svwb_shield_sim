@@ -9,6 +9,7 @@ const CLASS_ORDER = [
   "ネメシス",
   "ニュートラル",
 ];
+const FILTERABLE_CLASS_ORDER = CLASS_ORDER.filter((className) => className !== "ニュートラル");
 const CLASS_COLOR_KEY = {
   エルフ: "elf",
   ロイヤル: "royal",
@@ -25,6 +26,7 @@ const state = {
   packs: [],
   cardsByPack: new Map(),
   cardsByPackRarity: new Map(),
+  latestResultRows: [],
 };
 
 document.addEventListener("DOMContentLoaded", init);
@@ -47,6 +49,8 @@ function bindBaseEvents() {
   ["rateBronze", "rateSilver", "rateGold", "rateLegend"].forEach((id) => {
     document.getElementById(id).addEventListener("input", updateRateHint);
   });
+  document.getElementById("resultClassFilter").addEventListener("change", applyResultTableView);
+  document.getElementById("resultRaritySort").addEventListener("change", applyResultTableView);
 }
 
 async function loadCardsFromCsv(path) {
@@ -311,7 +315,8 @@ function renderResults(result) {
     "raritySummaryBody",
     [...result.byRarity.entries()].sort((a, b) => getRarityRank(a[0]) - getRarityRank(b[0])),
   );
-  renderResultRows(result.byCardRows);
+  state.latestResultRows = [...result.byCardRows];
+  applyResultTableView();
 }
 
 function renderSummaryTable(tbodyId, rows, options = {}) {
@@ -342,6 +347,36 @@ function renderResultRows(rows) {
     appendCell(tr, row.rarity);
     tbody.appendChild(tr);
   }
+}
+
+function applyResultTableView() {
+  const classFilter = document.getElementById("resultClassFilter").value;
+  const raritySort = document.getElementById("resultRaritySort").value;
+
+  let rows = [...state.latestResultRows];
+  if (FILTERABLE_CLASS_ORDER.includes(classFilter)) {
+    rows = rows.filter((row) => row.className === classFilter || row.className === "ニュートラル");
+  }
+
+  if (raritySort === "desc") {
+    rows.sort((a, b) => {
+      const rarityDelta = getRarityRank(b.rarity) - getRarityRank(a.rarity);
+      if (rarityDelta !== 0) {
+        return rarityDelta;
+      }
+      return compareCardRows(a, b);
+    });
+  } else if (raritySort === "asc") {
+    rows.sort((a, b) => {
+      const rarityDelta = getRarityRank(a.rarity) - getRarityRank(b.rarity);
+      if (rarityDelta !== 0) {
+        return rarityDelta;
+      }
+      return compareCardRows(a, b);
+    });
+  }
+
+  renderResultRows(rows);
 }
 
 function appendCell(tr, text) {

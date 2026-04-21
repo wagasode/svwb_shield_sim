@@ -102,6 +102,30 @@
         </div>
 
         <h3>排出カード一覧（集計）</h3>
+        <div class="result-toolbar">
+          <label class="field">
+            <span>クラス絞り込み</span>
+            <select id="resultClassFilter">
+              <option value="">全クラス</option>
+              <option value="エルフ">エルフ + ニュートラル</option>
+              <option value="ロイヤル">ロイヤル + ニュートラル</option>
+              <option value="ウィッチ">ウィッチ + ニュートラル</option>
+              <option value="ドラゴン">ドラゴン + ニュートラル</option>
+              <option value="ナイトメア">ナイトメア + ニュートラル</option>
+              <option value="ビショップ">ビショップ + ニュートラル</option>
+              <option value="ネメシス">ネメシス + ニュートラル</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>レアリティソート</span>
+            <select id="resultRaritySort">
+              <option value="">既定（枚数順）</option>
+              <option value="desc">高い順（レジェンド → ブロンズ）</option>
+              <option value="asc">低い順（ブロンズ → レジェンド）</option>
+            </select>
+          </label>
+        </div>
+        <p class="help-text result-help">ニュートラルは単体では絞り込めず、各クラス絞り込み時に一緒に表示します。</p>
         <div class="table-wrap">
           <table class="result-table">
             <thead>

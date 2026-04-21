@@ -264,6 +264,17 @@ button {
   padding: 10px;
 }
 
+.result-toolbar {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  margin: 8px 0 0;
+}
+
+.result-help {
+  margin: 8px 0 10px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -344,6 +355,10 @@ th {
 
 @media (max-width: 700px) {
   .pack-row {
+    grid-template-columns: 1fr;
+  }
+
+  .result-toolbar {
     grid-template-columns: 1fr;
   }
 
