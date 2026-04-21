@@ -9,6 +9,14 @@
   --warning: #a85d00;
   --danger: #a83245;
   --shadow: 0 14px 32px rgba(23, 57, 50, 0.11);
+  --class-elf-bg: #e7f6e8;
+  --class-royal-bg: #fff8d9;
+  --class-witch-bg: #e5f0ff;
+  --class-dragon-bg: #ffefdc;
+  --class-nightmare-bg: #ffe5e5;
+  --class-bishop-bg: #fafafa;
+  --class-nemesis-bg: #e2f8ff;
+  --class-neutral-bg: #ececec;
 }
 
 *,
@@ -274,6 +282,42 @@ td {
 th {
   color: var(--ink-soft);
   font-weight: 700;
+}
+
+.class-color-cell {
+  font-weight: 600;
+}
+
+.class-color-elf {
+  background: var(--class-elf-bg);
+}
+
+.class-color-royal {
+  background: var(--class-royal-bg);
+}
+
+.class-color-witch {
+  background: var(--class-witch-bg);
+}
+
+.class-color-dragon {
+  background: var(--class-dragon-bg);
+}
+
+.class-color-nightmare {
+  background: var(--class-nightmare-bg);
+}
+
+.class-color-bishop {
+  background: var(--class-bishop-bg);
+}
+
+.class-color-nemesis {
+  background: var(--class-nemesis-bg);
+}
+
+.class-color-neutral {
+  background: var(--class-neutral-bg);
 }
 
 .table-wrap {

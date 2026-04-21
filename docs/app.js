@@ -9,6 +9,16 @@ const CLASS_ORDER = [
   "ネメシス",
   "ニュートラル",
 ];
+const CLASS_COLOR_KEY = {
+  エルフ: "elf",
+  ロイヤル: "royal",
+  ウィッチ: "witch",
+  ドラゴン: "dragon",
+  ナイトメア: "nightmare",
+  ビショップ: "bishop",
+  ネメシス: "nemesis",
+  ニュートラル: "neutral",
+};
 
 const state = {
   cards: [],
@@ -295,6 +305,7 @@ function renderResults(result) {
       }
       return b[1] - a[1];
     }),
+    { colorizeClassLabel: true },
   );
   renderSummaryTable(
     "raritySummaryBody",
@@ -303,12 +314,16 @@ function renderResults(result) {
   renderResultRows(result.byCardRows);
 }
 
-function renderSummaryTable(tbodyId, rows) {
+function renderSummaryTable(tbodyId, rows, options = {}) {
+  const { colorizeClassLabel = false } = options;
   const tbody = document.getElementById(tbodyId);
   tbody.innerHTML = "";
   for (const [label, count] of rows) {
     const tr = document.createElement("tr");
-    appendCell(tr, label);
+    const labelCell = appendCell(tr, label);
+    if (colorizeClassLabel) {
+      applyClassColor(labelCell, label);
+    }
     appendCell(tr, String(count));
     tbody.appendChild(tr);
   }
@@ -322,7 +337,8 @@ function renderResultRows(rows) {
     appendCell(tr, String(row.count));
     appendCell(tr, row.packName);
     appendCell(tr, row.cardName);
-    appendCell(tr, row.className);
+    const classCell = appendCell(tr, row.className);
+    applyClassColor(classCell, row.className);
     appendCell(tr, row.rarity);
     tbody.appendChild(tr);
   }
@@ -332,6 +348,15 @@ function appendCell(tr, text) {
   const td = document.createElement("td");
   td.textContent = text;
   tr.appendChild(td);
+  return td;
+}
+
+function applyClassColor(element, className) {
+  const classKey = CLASS_COLOR_KEY[className];
+  if (!classKey) {
+    return;
+  }
+  element.classList.add("class-color-cell", `class-color-${classKey}`);
 }
 
 function updateRateHint() {
