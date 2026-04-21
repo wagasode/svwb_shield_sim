@@ -85,6 +85,12 @@ body {
   color: var(--ink-soft);
 }
 
+.hero-note {
+  margin: 0 0 10px;
+  color: #7b4a00;
+  font-size: 0.9rem;
+}
+
 .status {
   margin: 0;
   padding: 10px 12px;
@@ -97,6 +103,12 @@ body {
 .status.error {
   background: #fdeced;
   color: #912639;
+}
+
+.status-sub {
+  margin: 8px 2px 0;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
 }
 
 .panel {
@@ -366,6 +378,63 @@ th {
   min-width: 700px;
 }
 
+.site-footer {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 1px solid #d8e4e0;
+  border-radius: 14px;
+  background: #f8fcfb;
+}
+
+.site-footer-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: #135a4b;
+}
+
+.site-footer-text {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.site-footer-links a {
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-footer-links a:hover {
+  color: var(--accent);
+}
+
+.doc-title {
+  margin: 0 0 10px;
+}
+
+.doc-meta {
+  margin: 0 0 14px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.doc-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--ink-soft);
+}
+
+.doc-list li + li {
+  margin-top: 6px;
+}
+
 @media (max-width: 960px) {
   .config-grid,
   .summary-grid,
@@ -389,5 +458,9 @@ th {
 
   .page {
     padding: 18px 12px 40px;
+  }
+
+  .site-footer {
+    padding: 12px;
   }
 }

@@ -45,6 +45,7 @@ const state = {
   cardsByPack: new Map(),
   cardsByPackRarity: new Map(),
   latestResultRows: [],
+  cardsLastModified: "",
 };
 
 document.addEventListener("DOMContentLoaded", init);
@@ -56,8 +57,10 @@ async function init() {
     await loadCardsFromCsv("./data/svwb_cards_ja.csv");
     initPackRows();
     setStatus(`カード ${state.cards.length} 件 / パック ${state.packs.length} 種類を読み込みました。`);
+    updateDataUpdatedAt(state.cardsLastModified);
   } catch (error) {
     setStatus(`カードデータ読み込みに失敗しました: ${error.message}`, true);
+    updateDataUpdatedAt("");
   }
 }
 
@@ -76,6 +79,7 @@ async function loadCardsFromCsv(path) {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
+  state.cardsLastModified = response.headers.get("last-modified") || "";
 
   const csvText = await response.text();
   const records = parseCsv(csvText)
@@ -117,6 +121,34 @@ async function loadCardsFromCsv(path) {
     }
     rarityMap.get(card.rarity).push(card);
   }
+}
+
+function updateDataUpdatedAt(lastModified) {
+  const target = document.getElementById("dataUpdatedAt");
+  if (!target) {
+    return;
+  }
+
+  if (!lastModified) {
+    target.textContent = "カードデータ更新日時: 不明";
+    return;
+  }
+
+  const date = new Date(lastModified);
+  if (Number.isNaN(date.getTime())) {
+    target.textContent = "カードデータ更新日時: 不明";
+    return;
+  }
+
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  target.textContent = `カードデータ更新日時: ${formatter.format(date)} (JST)`;
 }
 
 function initPackRows() {

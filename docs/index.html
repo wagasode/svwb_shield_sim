@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SVWB シールド戦シミュレーター</title>
-    <link rel="stylesheet" href="./styles.css?v=20260421c" />
+    <meta
+      name="description"
+      content="SVWBのパック開封をシミュレーションできる非公式ファンサイトです。"
+    />
+    <meta name="robots" content="index,follow" />
+    <link rel="stylesheet" href="./styles.css?v=20260421d" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
@@ -17,7 +22,11 @@
         <p class="hero-description">
           パックと開封数を指定して、排出カードを一覧できます。
         </p>
+        <p class="hero-note">
+          本サイトは非公式のファンサイトであり、Cygamesとは提携・承認関係にありません。
+        </p>
         <p id="dataStatus" class="status">カードデータを読み込み中...</p>
+        <p id="dataUpdatedAt" class="status-sub">カードデータ更新日時を確認中...</p>
       </header>
 
       <section class="panel">
@@ -179,6 +188,30 @@
           </table>
         </div>
       </section>
+
+      <footer class="site-footer" aria-label="サイト情報">
+        <p class="site-footer-title">公開情報</p>
+        <p class="site-footer-text">
+          Shadowverse: Worlds Beyond および関連する名称・ロゴは Cygames の商標です。<br />
+          カード情報は公式Deck Portal公開情報を参照しており、各カード名から公式カード詳細ページへ移動できます。
+        </p>
+        <p class="site-footer-text">
+          本シミュレーターの排出率設定はユーザー入力値で計算され、公式の提供内容を保証するものではありません。
+        </p>
+        <nav class="site-footer-links" aria-label="法務リンク">
+          <a href="./legal.html">免責・権利表記</a>
+          <a href="./privacy.html">プライバシー</a>
+          <a href="https://shadowverse-wb.com/ja/terms/" target="_blank" rel="noopener noreferrer"
+            >公式利用規約</a
+          >
+          <a
+            href="https://shadowverse-wb.com/ja/guideline/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >公式コンテンツガイドライン</a
+          >
+        </nav>
+      </footer>
     </main>
 
     <template id="packRowTemplate">
@@ -195,6 +228,6 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260421c" defer></script>
+    <script src="./app.js?v=20260421d" defer></script>
   </body>
 </html>

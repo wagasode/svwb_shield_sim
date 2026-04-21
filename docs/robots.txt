@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://wagasode.github.io/svwb_shield_sim/sitemap.xml

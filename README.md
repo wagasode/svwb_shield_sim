@@ -11,7 +11,14 @@
 - `docs/`
   - GitHub Pagesで公開する静的サイト
   - `index.html`, `app.js`, `styles.css`
+  - `legal.html`, `privacy.html`, `404.html`
+  - `robots.txt`, `sitemap.xml`
   - 初期値は非公式の有力情報ベースの排出率（通常枠/8枚目保証枠）を設定
+- `.github/workflows/deploy-pages.yml`
+  - Pagesデプロイ
+  - 外部ActionはフルSHAで固定
+- `.github/dependabot.yml`
+  - GitHub Actions依存更新を週次チェック
 
 ## CSV更新
 
@@ -35,3 +42,11 @@ python3 -m http.server 18080 -d docs
 2. `Source` を `GitHub Actions` に設定
 3. `main` にpushする
 4. Actions `Deploy GitHub Pages` 完了後、Pages URLで公開される
+
+## 公開運用チェックリスト
+
+1. サイト上に「非公式ファンサイト」表記と権利表記（`© Cygames, Inc.`）を掲載する
+2. 免責・プライバシーページ（`docs/legal.html`, `docs/privacy.html`）を公開する
+3. GitHub `Settings > Branches` で `main` を保護する
+4. `Enforce HTTPS` を有効化する（カスタムドメイン利用時）
+5. 確率値が公式値ではない場合は、その旨をUIで明示する
