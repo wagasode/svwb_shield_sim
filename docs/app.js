@@ -9,6 +9,10 @@ const CLASS_ORDER = [
   "ネメシス",
   "ニュートラル",
 ];
+const DEFAULT_PACK_PLANS = [
+  { packName: "伝説の幕開け", count: 20 },
+  { packName: "アポカリプス・パクト", count: 20 },
+];
 const FILTERABLE_CLASS_ORDER = CLASS_ORDER.filter((className) => className !== "ニュートラル");
 const CLASS_COLOR_KEY = {
   エルフ: "elf",
@@ -111,7 +115,19 @@ async function loadCardsFromCsv(path) {
 function initPackRows() {
   const container = document.getElementById("packRows");
   container.innerHTML = "";
-  addPackRow(state.packs[0], 1);
+
+  const addedPacks = new Set();
+  for (const plan of DEFAULT_PACK_PLANS) {
+    if (!state.packs.includes(plan.packName)) {
+      continue;
+    }
+    addPackRow(plan.packName, plan.count);
+    addedPacks.add(plan.packName);
+  }
+
+  if (addedPacks.size === 0) {
+    addPackRow(state.packs[0], 1);
+  }
 }
 
 function addPackRow(defaultPackName = "", defaultCount = 1) {
