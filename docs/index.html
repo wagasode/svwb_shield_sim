@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVWB シールド戦シミュレーター</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <main class="page">
+      <header class="hero">
+        <p class="hero-kicker">GitHub Pages / CSV-Driven</p>
+        <h1>SVWB シールド戦シミュレーター</h1>
+        <p class="hero-description">
+          パックと開封数を指定して、排出カードを一覧できます。
+        </p>
+        <p id="dataStatus" class="status">カードデータを読み込み中...</p>
+      </header>
+
+      <section class="panel">
+        <h2>1. 開封設定</h2>
+        <p class="panel-description">
+          開封したいパックを追加し、開封数を設定してください。
+        </p>
+
+        <div id="packRows" class="pack-rows"></div>
+        <div class="pack-actions">
+          <button id="addPackRow" type="button" class="secondary-btn">パック行を追加</button>
+        </div>
+
+        <div class="config-grid">
+          <label class="field">
+            <span>1パックあたりの排出枚数</span>
+            <input id="cardsPerPack" type="number" min="1" max="20" step="1" value="8" />
+          </label>
+          <div class="field">
+            <span>レアリティ抽選率（%）</span>
+            <div class="rate-grid">
+              <label>ブロンズ<input id="rateBronze" type="number" min="0" step="0.1" value="70" /></label>
+              <label>シルバー<input id="rateSilver" type="number" min="0" step="0.1" value="24" /></label>
+              <label>ゴールド<input id="rateGold" type="number" min="0" step="0.1" value="5" /></label>
+              <label>レジェンド<input id="rateLegend" type="number" min="0" step="0.1" value="1" /></label>
+            </div>
+            <p id="rateHint" class="help-text"></p>
+          </div>
+        </div>
+
+        <div class="simulate-actions">
+          <button id="simulateButton" type="button" class="primary-btn">シミュレーション実行</button>
+        </div>
+        <p id="errorMessage" class="error-text" hidden></p>
+      </section>
+
+      <section id="resultsSection" class="panel" hidden>
+        <h2>2. 排出結果</h2>
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-label">開封パック総数</div>
+            <div id="totalOpenedPacks" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">排出カード総数</div>
+            <div id="totalDrawnCards" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">ユニークカード数</div>
+            <div id="uniqueDrawnCards" class="stat-value">0</div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <h3>パック別</h3>
+            <table>
+              <thead>
+                <tr><th>パック</th><th>枚数</th></tr>
+              </thead>
+              <tbody id="packSummaryBody"></tbody>
+            </table>
+          </article>
+          <article class="summary-card">
+            <h3>クラス別</h3>
+            <table>
+              <thead>
+                <tr><th>クラス</th><th>枚数</th></tr>
+              </thead>
+              <tbody id="classSummaryBody"></tbody>
+            </table>
+          </article>
+          <article class="summary-card">
+            <h3>レアリティ別</h3>
+            <table>
+              <thead>
+                <tr><th>レアリティ</th><th>枚数</th></tr>
+              </thead>
+              <tbody id="raritySummaryBody"></tbody>
+            </table>
+          </article>
+        </div>
+
+        <h3>排出カード一覧（集計）</h3>
+        <div class="table-wrap">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>枚数</th>
+                <th>パック名</th>
+                <th>カード名</th>
+                <th>クラス</th>
+                <th>レアリティ</th>
+              </tr>
+            </thead>
+            <tbody id="resultTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <template id="packRowTemplate">
+      <div class="pack-row">
+        <label class="field pack-name">
+          <span>パック</span>
+          <select class="pack-select"></select>
+        </label>
+        <label class="field pack-count">
+          <span>開封数</span>
+          <input class="pack-count-input" type="number" min="0" step="1" value="1" />
+        </label>
+        <button type="button" class="danger-btn remove-pack-row">削除</button>
+      </div>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
