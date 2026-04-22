@@ -25,17 +25,19 @@ const CLASS_COLOR_KEY = {
   ニュートラル: "neutral",
 };
 const GUARANTEED_SLOT_INDEX = 7;
+const LEGEND_RARITY = "レジェンド";
+const LEGEND_PITY_THRESHOLD = 10;
 const NORMAL_RATE_INPUTS = [
   { rarity: "ブロンズレア", inputId: "rateNormalBronze" },
   { rarity: "シルバーレア", inputId: "rateNormalSilver" },
   { rarity: "ゴールドレア", inputId: "rateNormalGold" },
-  { rarity: "レジェンド", inputId: "rateNormalLegend" },
+  { rarity: LEGEND_RARITY, inputId: "rateNormalLegend" },
 ];
 const GUARANTEED_RATE_INPUTS = [
   { rarity: "ブロンズレア", inputId: "rateGuaranteedBronze" },
   { rarity: "シルバーレア", inputId: "rateGuaranteedSilver" },
   { rarity: "ゴールドレア", inputId: "rateGuaranteedGold" },
-  { rarity: "レジェンド", inputId: "rateGuaranteedLegend" },
+  { rarity: LEGEND_RARITY, inputId: "rateGuaranteedLegend" },
 ];
 const OFFICIAL_CARD_URL_PREFIX = "https://shadowverse-wb.com";
 
@@ -300,20 +302,34 @@ function simulateDraw(setup) {
   const byPack = new Map();
   const byClass = new Map();
   const byRarity = new Map();
+  const noLegendPackStreakByPack = new Map();
   let totalOpenedPacks = 0;
 
   for (const plan of setup.plans) {
     totalOpenedPacks += plan.count;
     for (let packIndex = 0; packIndex < plan.count; packIndex += 1) {
+      const currentNoLegendStreak = noLegendPackStreakByPack.get(plan.packName) ?? 0;
+      const shouldForceLegendPack = currentNoLegendStreak >= LEGEND_PITY_THRESHOLD;
+      let packHasLegend = false;
+
       for (let drawIndex = 0; drawIndex < setup.cardsPerPack; drawIndex += 1) {
+        const isLastSlot = drawIndex === setup.cardsPerPack - 1;
+        const isForcedLegendSlot = shouldForceLegendPack && !packHasLegend && isLastSlot;
         const isGuaranteedSlot =
           setup.cardsPerPack > GUARANTEED_SLOT_INDEX && drawIndex === GUARANTEED_SLOT_INDEX;
-        const rarity = isGuaranteedSlot
-          ? pickRarity(setup.guaranteedRarityRates, setup.guaranteedRarityTotalWeight)
-          : pickRarity(setup.normalRarityRates, setup.normalRarityTotalWeight);
-        const card = pickCard(plan.packName, rarity);
+        const rarity = isForcedLegendSlot
+          ? LEGEND_RARITY
+          : isGuaranteedSlot
+            ? pickRarity(setup.guaranteedRarityRates, setup.guaranteedRarityTotalWeight)
+            : pickRarity(setup.normalRarityRates, setup.normalRarityTotalWeight);
+        const card = isForcedLegendSlot
+          ? pickCardExactRarity(plan.packName, LEGEND_RARITY) ?? pickCard(plan.packName, LEGEND_RARITY)
+          : pickCard(plan.packName, rarity);
         if (!card) {
           continue;
+        }
+        if (card.rarity === LEGEND_RARITY) {
+          packHasLegend = true;
         }
 
         drawRows.push(card);
@@ -327,6 +343,12 @@ function simulateDraw(setup) {
           byCard.set(cardKey, { ...card, count: 0 });
         }
         byCard.get(cardKey).count += 1;
+      }
+
+      if (packHasLegend) {
+        noLegendPackStreakByPack.set(plan.packName, 0);
+      } else {
+        noLegendPackStreakByPack.set(plan.packName, currentNoLegendStreak + 1);
       }
     }
   }
@@ -364,6 +386,15 @@ function pickCard(packName, rarity) {
     return null;
   }
   return packPool[Math.floor(Math.random() * packPool.length)];
+}
+
+function pickCardExactRarity(packName, rarity) {
+  const rarityMap = state.cardsByPackRarity.get(packName);
+  const rarityPool = rarityMap?.get(rarity) ?? [];
+  if (!rarityPool.length) {
+    return null;
+  }
+  return rarityPool[Math.floor(Math.random() * rarityPool.length)];
 }
 
 function compareCardRows(a, b) {

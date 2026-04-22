@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Validate required files
+        run: |
+          required_files=(
+            docs/index.html
+            docs/app.js
+            docs/styles.css
+            docs/legal.html
+            docs/privacy.html
+            docs/404.html
+            docs/robots.txt
+            docs/sitemap.xml
+            data/svwb_cards_ja.csv
+            docs/data/svwb_cards_ja.csv
+          )
+
+          for path in "${required_files[@]}"; do
+            if [[ ! -f "$path" ]]; then
+              echo "Missing required file: $path" >&2
+              exit 1
+            fi
+          done
+
+      - name: Validate app.js syntax
+        run: node --check docs/app.js
+
+      - name: Validate card CSVs
+        run: |
+          expected_header='パック名,カードID,カード名,クラス,レアリティ,公式カードURL'
+          actual_header="$(head -n 1 data/svwb_cards_ja.csv | tr -d '\r')"
+
+          if [[ "$actual_header" != "$expected_header" ]]; then
+            echo "Unexpected CSV header: $actual_header" >&2
+            exit 1
+          fi
+
+          if ! cmp -s data/svwb_cards_ja.csv docs/data/svwb_cards_ja.csv; then
+            echo "data/svwb_cards_ja.csv and docs/data/svwb_cards_ja.csv are out of sync" >&2
+            exit 1
+          fi

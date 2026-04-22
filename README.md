@@ -14,6 +14,7 @@
   - `legal.html`, `privacy.html`, `404.html`
   - `robots.txt`, `sitemap.xml`
   - 初期値は非公式の有力情報ベースの排出率（通常枠/8枚目保証枠）を設定
+  - 同一パックで10パック連続レジェンドなしの場合、次の同一パック開封でレジェンド1枚以上を確定
 - `.github/workflows/deploy-pages.yml`
   - Pagesデプロイ
   - 外部ActionはフルSHAで固定
