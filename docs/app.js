@@ -14,6 +14,7 @@ const DEFAULT_PACK_PLANS = [
   { packName: "アポカリプス・パクト", count: 20 },
 ];
 const FILTERABLE_CLASS_ORDER = CLASS_ORDER.filter((className) => className !== "ニュートラル");
+const NEUTRAL_CLASS = "ニュートラル";
 const CLASS_COLOR_KEY = {
   エルフ: "elf",
   ロイヤル: "royal",
@@ -40,6 +41,9 @@ const GUARANTEED_RATE_INPUTS = [
   { rarity: LEGEND_RARITY, inputId: "rateGuaranteedLegend" },
 ];
 const OFFICIAL_CARD_URL_PREFIX = "https://shadowverse-wb.com";
+const DEFAULT_DECK_TARGET_CLASS = FILTERABLE_CLASS_ORDER[0];
+const DEFAULT_DECK_TARGET_SIZE = 40;
+const DEFAULT_DECK_CARD_LIMIT = 3;
 
 const state = {
   cards: [],
@@ -47,6 +51,7 @@ const state = {
   cardsByPack: new Map(),
   cardsByPackRarity: new Map(),
   latestResultRows: [],
+  deckByCard: new Map(),
   cardsLastModified: "",
 };
 
@@ -74,6 +79,20 @@ function bindBaseEvents() {
   });
   document.getElementById("resultClassFilter").addEventListener("change", applyResultTableView);
   document.getElementById("resultRaritySort").addEventListener("change", applyResultTableView);
+  document.getElementById("buildDeckFromResult").addEventListener("click", buildDeckFromResult);
+  document.getElementById("clearDeckButton").addEventListener("click", clearDeck);
+  document.getElementById("deckTargetClass").addEventListener("change", renderDeckEditor);
+  document.getElementById("deckTargetSize").addEventListener("change", renderDeckEditor);
+  document.getElementById("deckCardLimit").addEventListener("change", renderDeckEditor);
+  initDeckEditorDefaults();
+}
+
+function initDeckEditorDefaults() {
+  document.getElementById("deckTargetClass").value = DEFAULT_DECK_TARGET_CLASS;
+  document.getElementById("deckTargetSize").value = String(DEFAULT_DECK_TARGET_SIZE);
+  document.getElementById("deckCardLimit").value = String(DEFAULT_DECK_CARD_LIMIT);
+  setDeckMessage("シミュレーション後にデッキ案を生成できます。");
+  renderDeckEditor();
 }
 
 async function loadCardsFromCsv(path) {
@@ -337,8 +356,7 @@ function simulateDraw(setup) {
         addCount(byClass, card.className, 1);
         addCount(byRarity, card.rarity, 1);
 
-        const cardKey =
-          card.cardId || [card.packName, card.cardName, card.className, card.rarity].join("\t");
+        const cardKey = getCardKey(card);
         if (!byCard.has(cardKey)) {
           byCard.set(cardKey, { ...card, count: 0 });
         }
@@ -444,7 +462,10 @@ function renderResults(result) {
     [...result.byRarity.entries()].sort((a, b) => getRarityRank(a[0]) - getRarityRank(b[0])),
   );
   state.latestResultRows = [...result.byCardRows];
+  state.deckByCard = new Map();
+  setDeckMessage("シミュレーション結果を反映しました。デッキ案を生成するか、表の +/- で編集してください。");
   applyResultTableView();
+  renderDeckEditor();
 }
 
 function renderSummaryTable(tbodyId, rows, options = {}) {
@@ -473,6 +494,7 @@ function renderResultRows(rows) {
     const classCell = appendCell(tr, row.className);
     applyClassColor(classCell, row.className);
     appendCell(tr, row.rarity);
+    appendResultActionCell(tr, row);
     tbody.appendChild(tr);
   }
 }
@@ -483,7 +505,7 @@ function applyResultTableView() {
 
   let rows = [...state.latestResultRows];
   if (FILTERABLE_CLASS_ORDER.includes(classFilter)) {
-    rows = rows.filter((row) => row.className === classFilter || row.className === "ニュートラル");
+    rows = rows.filter((row) => row.className === classFilter || row.className === NEUTRAL_CLASS);
   }
 
   if (raritySort === "desc") {
@@ -505,6 +527,272 @@ function applyResultTableView() {
   }
 
   renderResultRows(rows);
+}
+
+function appendResultActionCell(tr, row) {
+  const td = document.createElement("td");
+  td.className = "row-action-cell";
+  const addButton = createRowActionButton("+", "デッキに1枚追加", () => addCardToDeck(row, 1));
+  const removeButton = createRowActionButton(
+    "-",
+    "デッキから1枚削除",
+    () => removeCardFromDeckByKey(getCardKey(row), 1),
+    true,
+  );
+  td.append(addButton, removeButton);
+  tr.appendChild(td);
+  return td;
+}
+
+function appendDeckActionCell(tr, row) {
+  const td = document.createElement("td");
+  td.className = "row-action-cell";
+  const addButton = createRowActionButton("+", "1枚追加", () => addCardToDeck(row, 1));
+  const removeButton = createRowActionButton(
+    "-",
+    "1枚削除",
+    () => removeCardFromDeckByKey(getCardKey(row), 1),
+    true,
+  );
+  td.append(addButton, removeButton);
+  tr.appendChild(td);
+  return td;
+}
+
+function createRowActionButton(label, title, onClick, isDanger = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.title = title;
+  button.className = isDanger ? "row-action-btn is-danger" : "row-action-btn";
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function collectDeckSetup() {
+  const targetClass = document.getElementById("deckTargetClass").value;
+  const targetSize = Number.parseInt(document.getElementById("deckTargetSize").value, 10);
+  const cardLimit = Number.parseInt(document.getElementById("deckCardLimit").value, 10);
+
+  if (!FILTERABLE_CLASS_ORDER.includes(targetClass)) {
+    return { ok: false, error: "対象クラスを指定してください。" };
+  }
+  if (!Number.isInteger(targetSize) || targetSize <= 0 || targetSize > 80) {
+    return { ok: false, error: "目標デッキ枚数は 1〜80 の整数で指定してください。" };
+  }
+  if (!Number.isInteger(cardLimit) || cardLimit <= 0 || cardLimit > 20) {
+    return { ok: false, error: "同名カード上限は 1〜20 の整数で指定してください。" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      targetClass,
+      targetSize,
+      cardLimit,
+    },
+  };
+}
+
+function buildDeckFromResult() {
+  if (!state.latestResultRows.length) {
+    setDeckMessage("先にシミュレーションを実行してください。", true);
+    return;
+  }
+
+  const setupResult = collectDeckSetup();
+  if (!setupResult.ok) {
+    setDeckMessage(setupResult.error, true);
+    return;
+  }
+  const setup = setupResult.value;
+
+  const candidateRows = state.latestResultRows
+    .filter((row) => isCardAllowedForClass(row, setup.targetClass))
+    .sort((a, b) => {
+      if (b.count !== a.count) {
+        return b.count - a.count;
+      }
+      const rarityDelta = getRarityRank(b.rarity) - getRarityRank(a.rarity);
+      if (rarityDelta !== 0) {
+        return rarityDelta;
+      }
+      return compareCardRows(a, b);
+    });
+
+  state.deckByCard = new Map();
+  let remaining = setup.targetSize;
+
+  for (const row of candidateRows) {
+    const copies = Math.min(row.count, setup.cardLimit, remaining);
+    if (copies <= 0) {
+      continue;
+    }
+    state.deckByCard.set(getCardKey(row), { ...row, count: copies });
+    remaining -= copies;
+    if (remaining === 0) {
+      break;
+    }
+  }
+
+  if (remaining > 0) {
+    setDeckMessage(
+      `候補が不足しているため ${setup.targetSize - remaining}/${setup.targetSize} 枚で生成しました。`,
+      true,
+    );
+  } else {
+    setDeckMessage(`${setup.targetClass} 用のデッキ案を ${setup.targetSize} 枚で生成しました。`);
+  }
+  renderDeckEditor();
+}
+
+function clearDeck() {
+  state.deckByCard = new Map();
+  setDeckMessage("デッキをクリアしました。");
+  renderDeckEditor();
+}
+
+function addCardToDeck(row, copies = 1) {
+  const setupResult = collectDeckSetup();
+  if (!setupResult.ok) {
+    setDeckMessage(setupResult.error, true);
+    return;
+  }
+  const setup = setupResult.value;
+  if (!isCardAllowedForClass(row, setup.targetClass)) {
+    setDeckMessage(`対象外クラスのため追加できません（${setup.targetClass}+${NEUTRAL_CLASS}のみ）。`, true);
+    return;
+  }
+
+  const key = getCardKey(row);
+  const sourceRow = findResultRowByKey(key);
+  if (!sourceRow) {
+    setDeckMessage("このカードは直近シミュレーション結果にないため追加できません。", true);
+    return;
+  }
+
+  const entry = state.deckByCard.get(key) ?? { ...sourceRow, count: 0 };
+  const deckSpace = setup.targetSize - countDeckCards();
+  const remainingByCardLimit = setup.cardLimit - entry.count;
+  const remainingByResultCount = sourceRow.count - entry.count;
+  const addable = Math.min(copies, deckSpace, remainingByCardLimit, remainingByResultCount);
+
+  if (deckSpace <= 0) {
+    setDeckMessage("デッキ枚数が上限です。", true);
+    return;
+  }
+  if (remainingByCardLimit <= 0) {
+    setDeckMessage("同名カード上限に達しています。", true);
+    return;
+  }
+  if (remainingByResultCount <= 0) {
+    setDeckMessage("シミュレーション結果内の所持枚数上限に達しています。", true);
+    return;
+  }
+  if (addable <= 0) {
+    setDeckMessage("追加できませんでした。", true);
+    return;
+  }
+
+  entry.count += addable;
+  state.deckByCard.set(key, entry);
+  if (addable < copies) {
+    setDeckMessage(`${entry.cardName} を ${addable} 枚のみ追加しました。`, true);
+  } else {
+    setDeckMessage(`${entry.cardName} を ${addable} 枚追加しました。`);
+  }
+  renderDeckEditor();
+}
+
+function removeCardFromDeckByKey(cardKey, copies = 1) {
+  const entry = state.deckByCard.get(cardKey);
+  if (!entry) {
+    setDeckMessage("削除対象のカードがデッキにありません。", true);
+    return;
+  }
+  const removedCount = Math.min(copies, entry.count);
+  entry.count -= copies;
+  if (entry.count <= 0) {
+    state.deckByCard.delete(cardKey);
+  } else {
+    state.deckByCard.set(cardKey, entry);
+  }
+  setDeckMessage(`${entry.cardName} を ${removedCount} 枚削除しました。`);
+  renderDeckEditor();
+}
+
+function renderDeckEditor() {
+  const setupResult = collectDeckSetup();
+  const targetSize = setupResult.ok ? setupResult.value.targetSize : 0;
+  const totalCards = countDeckCards();
+  const remainingCards = Math.max(0, targetSize - totalCards);
+
+  document.getElementById("deckTotalCards").textContent = String(totalCards);
+  document.getElementById("deckRemainingCards").textContent = setupResult.ok ? String(remainingCards) : "-";
+  document.getElementById("deckUniqueCards").textContent = String(state.deckByCard.size);
+
+  const byClass = new Map();
+  const byRarity = new Map();
+  for (const row of state.deckByCard.values()) {
+    addCount(byClass, row.className, row.count);
+    addCount(byRarity, row.rarity, row.count);
+  }
+
+  renderSummaryTable(
+    "deckClassSummaryBody",
+    [...byClass.entries()].sort((a, b) => {
+      const rankDelta = getClassRank(a[0]) - getClassRank(b[0]);
+      if (rankDelta !== 0) {
+        return rankDelta;
+      }
+      return b[1] - a[1];
+    }),
+    { colorizeClassLabel: true },
+  );
+  renderSummaryTable(
+    "deckRaritySummaryBody",
+    [...byRarity.entries()].sort((a, b) => getRarityRank(a[0]) - getRarityRank(b[0])),
+  );
+
+  renderDeckRows([...state.deckByCard.values()].sort(compareCardRows));
+}
+
+function renderDeckRows(rows) {
+  const tbody = document.getElementById("deckTableBody");
+  tbody.innerHTML = "";
+
+  for (const row of rows) {
+    const tr = document.createElement("tr");
+    appendCell(tr, String(row.count));
+    appendCardCell(tr, row);
+    const classCell = appendCell(tr, row.className);
+    applyClassColor(classCell, row.className);
+    appendCell(tr, row.rarity);
+    appendDeckActionCell(tr, row);
+    tbody.appendChild(tr);
+  }
+}
+
+function setDeckMessage(message, isError = false) {
+  const messageElement = document.getElementById("deckMessage");
+  messageElement.textContent = message;
+  messageElement.style.color = isError ? "var(--danger)" : "var(--ink-soft)";
+}
+
+function isCardAllowedForClass(row, targetClass) {
+  return row.className === targetClass || row.className === NEUTRAL_CLASS;
+}
+
+function countDeckCards() {
+  let total = 0;
+  for (const row of state.deckByCard.values()) {
+    total += row.count;
+  }
+  return total;
+}
+
+function findResultRowByKey(cardKey) {
+  return state.latestResultRows.find((row) => getCardKey(row) === cardKey) ?? null;
 }
 
 function appendCell(tr, text) {
@@ -591,6 +879,10 @@ function clearError() {
 
 function addCount(map, key, count) {
   map.set(key, (map.get(key) ?? 0) + count);
+}
+
+function getCardKey(card) {
+  return card.cardId || [card.packName, card.cardName, card.className, card.rarity].join("\t");
 }
 
 function cleanValue(value) {
