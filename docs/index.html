@@ -183,9 +183,95 @@
                 <th>カード名</th>
                 <th>クラス</th>
                 <th>レアリティ</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody id="resultTableBody"></tbody>
+          </table>
+        </div>
+
+        <h3>3. デッキ編集</h3>
+        <p class="help-text result-help">
+          シミュレーション結果のカードを使って、クラス指定のデッキ案を生成し、そのまま微調整できます。
+        </p>
+        <div class="deck-toolbar">
+          <label class="field">
+            <span>対象クラス</span>
+            <select id="deckTargetClass">
+              <option value="エルフ">エルフ + ニュートラル</option>
+              <option value="ロイヤル">ロイヤル + ニュートラル</option>
+              <option value="ウィッチ">ウィッチ + ニュートラル</option>
+              <option value="ドラゴン">ドラゴン + ニュートラル</option>
+              <option value="ナイトメア">ナイトメア + ニュートラル</option>
+              <option value="ビショップ">ビショップ + ニュートラル</option>
+              <option value="ネメシス">ネメシス + ニュートラル</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>目標デッキ枚数</span>
+            <input id="deckTargetSize" type="number" min="1" max="80" step="1" value="40" />
+          </label>
+          <label class="field">
+            <span>同名カード上限</span>
+            <input id="deckCardLimit" type="number" min="1" max="20" step="1" value="3" />
+          </label>
+        </div>
+        <div class="deck-actions">
+          <button id="buildDeckFromResult" type="button" class="secondary-btn">
+            結果からデッキ案を生成
+          </button>
+          <button id="clearDeckButton" type="button" class="danger-btn">デッキをクリア</button>
+        </div>
+        <p id="deckMessage" class="help-text"></p>
+
+        <div class="stats deck-stats">
+          <div class="stat-card">
+            <div class="stat-label">デッキ枚数</div>
+            <div id="deckTotalCards" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">残り枠</div>
+            <div id="deckRemainingCards" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">採用カード種類数</div>
+            <div id="deckUniqueCards" class="stat-value">0</div>
+          </div>
+        </div>
+
+        <div class="summary-grid deck-summary-grid">
+          <article class="summary-card">
+            <h3>デッキ内クラス別</h3>
+            <table>
+              <thead>
+                <tr><th>クラス</th><th>枚数</th></tr>
+              </thead>
+              <tbody id="deckClassSummaryBody"></tbody>
+            </table>
+          </article>
+          <article class="summary-card">
+            <h3>デッキ内レアリティ別</h3>
+            <table>
+              <thead>
+                <tr><th>レアリティ</th><th>枚数</th></tr>
+              </thead>
+              <tbody id="deckRaritySummaryBody"></tbody>
+            </table>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table class="result-table deck-table">
+            <thead>
+              <tr>
+                <th>枚数</th>
+                <th>カード名</th>
+                <th>クラス</th>
+                <th>レアリティ</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="deckTableBody"></tbody>
           </table>
         </div>
       </section>

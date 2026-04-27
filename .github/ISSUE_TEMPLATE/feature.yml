@@ -1,0 +1,53 @@
+name: Feature
+description: 新機能の追加提案
+title: "feat: "
+labels:
+  - feature
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+      description: なぜ必要か、現在の課題は何か
+      placeholder: 例) シミュレーション結果は表示できるが、デッキ編集に反映できない
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目的
+      description: このIssueで達成したいこと
+      placeholder: 例) シミュレーション結果を使ってデッキ案を生成し、手動編集できるようにする
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      description: 完了判定の条件をチェックリストで記載
+      value: |
+        - [ ] UI上で機能が確認できる
+        - [ ] 主要なバリデーションエラーが表示される
+        - [ ] 既存機能に回帰がない
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: 対象外
+      description: 今回やらないこと
+      placeholder: 例) サーバー保存機能は今回対象外
+    validations:
+      required: false
+  - type: textarea
+    id: task_breakdown
+    attributes:
+      label: 作業分割案
+      description: Sub-issueに分割する単位
+      placeholder: |
+        - UI追加
+        - ロジック追加
+        - テスト
+        - ドキュメント
+    validations:
+      required: false
