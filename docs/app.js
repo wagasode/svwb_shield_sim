@@ -44,6 +44,7 @@ const OFFICIAL_CARD_URL_PREFIX = "https://shadowverse-wb.com";
 const DEFAULT_DECK_TARGET_CLASS = FILTERABLE_CLASS_ORDER[0];
 const DEFAULT_DECK_TARGET_SIZE = 40;
 const DEFAULT_DECK_CARD_LIMIT = 3;
+const CARD_DRAG_MIME_TYPE = "application/x-svwb-card";
 
 const state = {
   cards: [],
@@ -53,6 +54,7 @@ const state = {
   latestResultRows: [],
   deckByCard: new Map(),
   cardsLastModified: "",
+  activeDragPayload: null,
 };
 
 document.addEventListener("DOMContentLoaded", init);
@@ -84,6 +86,8 @@ function bindBaseEvents() {
   document.getElementById("deckTargetClass").addEventListener("change", renderDeckEditor);
   document.getElementById("deckTargetSize").addEventListener("change", renderDeckEditor);
   document.getElementById("deckCardLimit").addEventListener("change", renderDeckEditor);
+  document.getElementById("mobileDeckJump").addEventListener("click", scrollToDeckDropZone);
+  initDeckDragAndDrop();
   initDeckEditorDefaults();
 }
 
@@ -463,7 +467,7 @@ function renderResults(result) {
   );
   state.latestResultRows = [...result.byCardRows];
   state.deckByCard = new Map();
-  setDeckMessage("シミュレーション結果を反映しました。デッキ案を生成するか、表の +/- で編集してください。");
+  setDeckMessage("シミュレーション結果を反映しました。デッキ案を生成するか、カードをドラッグして編集してください。");
   applyResultTableView();
   renderDeckEditor();
 }
@@ -494,7 +498,6 @@ function renderResultRows(rows) {
     const classCell = appendCell(tr, row.className);
     applyClassColor(classCell, row.className);
     appendCell(tr, row.rarity);
-    appendResultActionCell(tr, row);
     tbody.appendChild(tr);
   }
 }
@@ -527,46 +530,6 @@ function applyResultTableView() {
   }
 
   renderResultRows(rows);
-}
-
-function appendResultActionCell(tr, row) {
-  const td = document.createElement("td");
-  td.className = "row-action-cell";
-  const addButton = createRowActionButton("+", "デッキに1枚追加", () => addCardToDeck(row, 1));
-  const removeButton = createRowActionButton(
-    "-",
-    "デッキから1枚削除",
-    () => removeCardFromDeckByKey(getCardKey(row), 1),
-    true,
-  );
-  td.append(addButton, removeButton);
-  tr.appendChild(td);
-  return td;
-}
-
-function appendDeckActionCell(tr, row) {
-  const td = document.createElement("td");
-  td.className = "row-action-cell";
-  const addButton = createRowActionButton("+", "1枚追加", () => addCardToDeck(row, 1));
-  const removeButton = createRowActionButton(
-    "-",
-    "1枚削除",
-    () => removeCardFromDeckByKey(getCardKey(row), 1),
-    true,
-  );
-  td.append(addButton, removeButton);
-  tr.appendChild(td);
-  return td;
-}
-
-function createRowActionButton(label, title, onClick, isDanger = false) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.textContent = label;
-  button.title = title;
-  button.className = isDanger ? "row-action-btn is-danger" : "row-action-btn";
-  button.addEventListener("click", onClick);
-  return button;
 }
 
 function collectDeckSetup() {
@@ -730,6 +693,7 @@ function renderDeckEditor() {
   document.getElementById("deckTotalCards").textContent = String(totalCards);
   document.getElementById("deckRemainingCards").textContent = setupResult.ok ? String(remainingCards) : "-";
   document.getElementById("deckUniqueCards").textContent = String(state.deckByCard.size);
+  updateMobileDeckSummary(setupResult, totalCards, remainingCards);
 
   const byClass = new Map();
   const byRarity = new Map();
@@ -754,7 +718,267 @@ function renderDeckEditor() {
     [...byRarity.entries()].sort((a, b) => getRarityRank(a[0]) - getRarityRank(b[0])),
   );
 
+  renderDeckBuilder(setupResult, totalCards, remainingCards);
   renderDeckRows([...state.deckByCard.values()].sort(compareCardRows));
+}
+
+function renderDeckBuilder(setupResult, totalCards, remainingCards) {
+  const sourceCards = document.getElementById("deckSourceCards");
+  const deckCards = document.getElementById("deckCards");
+  sourceCards.innerHTML = "";
+  deckCards.innerHTML = "";
+
+  const sourceRows = setupResult.ok
+    ? state.latestResultRows
+        .filter((row) => isCardAllowedForClass(row, setupResult.value.targetClass))
+        .sort(compareCardRows)
+    : [];
+  const deckRows = [...state.deckByCard.values()].sort(compareCardRows);
+
+  document.getElementById("deckSourceCount").textContent = `${sourceRows.length} 種類`;
+  document.getElementById("deckDropCount").textContent = `${totalCards} 枚 / 残り ${remainingCards}`;
+
+  if (!state.latestResultRows.length) {
+    sourceCards.appendChild(createDeckPlaceholder("シミュレーション後に表示されます。"));
+  } else if (!sourceRows.length) {
+    sourceCards.appendChild(createDeckPlaceholder("対象クラスの候補がありません。"));
+  } else {
+    for (const row of sourceRows) {
+      const cardKey = getCardKey(row);
+      const deckCount = state.deckByCard.get(cardKey)?.count ?? 0;
+      const availableCount = row.count - deckCount;
+      sourceCards.appendChild(
+        createDeckCardItem(row, {
+          countLabel: `残 ${Math.max(0, availableCount)} / 所持 ${row.count}`,
+          dragSource: "result",
+          isDisabled: availableCount <= 0,
+          actionLabel: "+",
+          actionTitle: "デッキに1枚追加",
+          onAction: () => addCardToDeck(row, 1),
+        }),
+      );
+    }
+  }
+
+  if (!deckRows.length) {
+    deckCards.appendChild(createDeckPlaceholder("カード未選択"));
+  } else {
+    for (const row of deckRows) {
+      deckCards.appendChild(
+        createDeckCardItem(row, {
+          countLabel: `${row.count} 枚`,
+          dragSource: "deck",
+          isDanger: true,
+          actionLabel: "-",
+          actionTitle: "デッキから1枚削除",
+          onAction: () => removeCardFromDeckByKey(getCardKey(row), 1),
+        }),
+      );
+    }
+  }
+}
+
+function updateMobileDeckSummary(setupResult, totalCards, remainingCards) {
+  const summaryText = document.getElementById("mobileDeckSummaryText");
+  if (!setupResult.ok) {
+    summaryText.textContent = `デッキ ${totalCards} 枚`;
+    return;
+  }
+  summaryText.textContent = `デッキ ${totalCards}/${setupResult.value.targetSize} / 残り ${remainingCards}`;
+}
+
+function scrollToDeckDropZone() {
+  const dropZone = document.getElementById("deckDropZone");
+  const top = dropZone.getBoundingClientRect().top + window.scrollY - 12;
+  window.scrollTo({
+    top: Math.max(0, top),
+    behavior: "smooth",
+  });
+}
+
+function createDeckPlaceholder(message) {
+  const placeholder = document.createElement("p");
+  placeholder.className = "deck-card-placeholder";
+  placeholder.textContent = message;
+  return placeholder;
+}
+
+function createDeckCardItem(row, options) {
+  const {
+    countLabel,
+    dragSource,
+    isDisabled = false,
+    isDanger = false,
+    actionLabel,
+    actionTitle,
+    onAction,
+  } = options;
+  const cardKey = getCardKey(row);
+  const item = document.createElement("article");
+  item.className = "deck-card";
+  item.role = "listitem";
+  item.draggable = !isDisabled;
+  item.dataset.cardKey = cardKey;
+  item.dataset.dragSource = dragSource;
+  item.classList.toggle("is-disabled", isDisabled);
+  item.addEventListener("dragstart", (event) => {
+    if (isDisabled) {
+      event.preventDefault();
+      return;
+    }
+    handleCardDragStart(event, { source: dragSource, cardKey });
+  });
+  item.addEventListener("dragend", handleCardDragEnd);
+
+  const topLine = document.createElement("div");
+  topLine.className = "deck-card-topline";
+
+  const count = document.createElement("span");
+  count.className = "deck-card-count";
+  count.textContent = countLabel;
+
+  const actionButton = document.createElement("button");
+  actionButton.type = "button";
+  actionButton.className = isDanger ? "deck-card-action is-danger" : "deck-card-action";
+  actionButton.textContent = actionLabel;
+  actionButton.dataset.symbol = actionLabel;
+  actionButton.title = actionTitle;
+  actionButton.setAttribute("aria-label", `${row.cardName}を${actionTitle}`);
+  actionButton.disabled = isDisabled;
+  actionButton.addEventListener("click", onAction);
+
+  topLine.append(count, actionButton);
+
+  const name = document.createElement("div");
+  name.className = "deck-card-name";
+  name.textContent = row.cardName;
+
+  const meta = document.createElement("div");
+  meta.className = "deck-card-meta";
+  const classBadge = document.createElement("span");
+  classBadge.className = "deck-card-class";
+  classBadge.textContent = row.className;
+  applyClassColor(classBadge, row.className);
+  const rarityBadge = document.createElement("span");
+  rarityBadge.className = "deck-card-rarity";
+  rarityBadge.textContent = row.rarity;
+  rarityBadge.dataset.shortLabel = getShortRarityLabel(row.rarity);
+  meta.append(classBadge, rarityBadge);
+
+  item.append(topLine, name, meta);
+  return item;
+}
+
+function getShortRarityLabel(rarity) {
+  if (rarity === "ブロンズレア") {
+    return "ブロンズ";
+  }
+  if (rarity === "シルバーレア") {
+    return "シルバー";
+  }
+  if (rarity === "ゴールドレア") {
+    return "ゴールド";
+  }
+  return rarity;
+}
+
+function initDeckDragAndDrop() {
+  bindDeckDropRegion(document.getElementById("deckDropZone"), "deck");
+  bindDeckDropRegion(document.getElementById("deckSourceCards"), "source");
+}
+
+function bindDeckDropRegion(element, target) {
+  element.addEventListener("dragenter", (event) => handleDeckDragEnter(event, target, element));
+  element.addEventListener("dragover", (event) => handleDeckDragOver(event, target, element));
+  element.addEventListener("dragleave", (event) => handleDeckDragLeave(event, element));
+  element.addEventListener("drop", (event) => handleDeckDrop(event, target, element));
+}
+
+function handleCardDragStart(event, payload) {
+  state.activeDragPayload = payload;
+  event.dataTransfer.effectAllowed = payload.source === "result" ? "copy" : "move";
+  const payloadText = JSON.stringify(payload);
+  event.dataTransfer.setData(CARD_DRAG_MIME_TYPE, payloadText);
+  event.dataTransfer.setData("text/plain", payloadText);
+  event.currentTarget.classList.add("is-dragging");
+}
+
+function handleCardDragEnd(event) {
+  state.activeDragPayload = null;
+  event.currentTarget.classList.remove("is-dragging");
+  clearDeckDropState();
+}
+
+function handleDeckDragEnter(event, target, element) {
+  if (!canDropDeckPayload(state.activeDragPayload, target)) {
+    return;
+  }
+  event.preventDefault();
+  element.classList.add("is-drop-ready");
+}
+
+function handleDeckDragOver(event, target, element) {
+  if (!canDropDeckPayload(state.activeDragPayload, target)) {
+    return;
+  }
+  event.preventDefault();
+  event.dataTransfer.dropEffect = target === "deck" ? "copy" : "move";
+  element.classList.add("is-drop-ready");
+}
+
+function handleDeckDragLeave(event, element) {
+  if (element.contains(event.relatedTarget)) {
+    return;
+  }
+  element.classList.remove("is-drop-ready");
+}
+
+function handleDeckDrop(event, target, element) {
+  const payload = readDeckDragPayload(event);
+  if (!canDropDeckPayload(payload, target)) {
+    return;
+  }
+  event.preventDefault();
+  element.classList.remove("is-drop-ready");
+
+  if (target === "deck") {
+    const row = findResultRowByKey(payload.cardKey);
+    if (row) {
+      addCardToDeck(row, 1);
+    }
+    return;
+  }
+
+  removeCardFromDeckByKey(payload.cardKey, 1);
+}
+
+function readDeckDragPayload(event) {
+  const payloadText =
+    event.dataTransfer.getData(CARD_DRAG_MIME_TYPE) || event.dataTransfer.getData("text/plain");
+  if (!payloadText) {
+    return state.activeDragPayload;
+  }
+  try {
+    return JSON.parse(payloadText);
+  } catch {
+    return state.activeDragPayload;
+  }
+}
+
+function canDropDeckPayload(payload, target) {
+  if (!payload?.cardKey) {
+    return false;
+  }
+  return (
+    (target === "deck" && payload.source === "result") ||
+    (target === "source" && payload.source === "deck")
+  );
+}
+
+function clearDeckDropState() {
+  document.querySelectorAll(".deck-drop-region.is-drop-ready").forEach((element) => {
+    element.classList.remove("is-drop-ready");
+  });
 }
 
 function renderDeckRows(rows) {
@@ -768,7 +992,6 @@ function renderDeckRows(rows) {
     const classCell = appendCell(tr, row.className);
     applyClassColor(classCell, row.className);
     appendCell(tr, row.rarity);
-    appendDeckActionCell(tr, row);
     tbody.appendChild(tr);
   }
 }

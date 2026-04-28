@@ -9,7 +9,7 @@
       content="SVWBのパック開封をシミュレーションできる非公式ファンサイトです。"
     />
     <meta name="robots" content="index,follow" />
-    <link rel="stylesheet" href="./styles.css?v=20260421d" />
+    <link rel="stylesheet" href="./styles.css?v=20260428b" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
@@ -183,7 +183,6 @@
                 <th>カード名</th>
                 <th>クラス</th>
                 <th>レアリティ</th>
-                <th>操作</th>
               </tr>
             </thead>
             <tbody id="resultTableBody"></tbody>
@@ -223,6 +222,28 @@
           <button id="clearDeckButton" type="button" class="danger-btn">デッキをクリア</button>
         </div>
         <p id="deckMessage" class="help-text"></p>
+
+        <div class="mobile-deck-summary" aria-live="polite">
+          <span id="mobileDeckSummaryText">デッキ 0/40 / 残り 40</span>
+          <button id="mobileDeckJump" type="button">デッキを見る</button>
+        </div>
+
+        <div class="deck-builder" aria-label="デッキ編集">
+          <section class="deck-card-panel" aria-labelledby="deckSourceTitle">
+            <div class="deck-panel-heading">
+              <h4 id="deckSourceTitle">開封結果</h4>
+              <span id="deckSourceCount" class="deck-panel-count">0 種類</span>
+            </div>
+            <div id="deckSourceCards" class="deck-card-grid deck-drop-region" role="list"></div>
+          </section>
+          <section id="deckDropZone" class="deck-card-panel deck-drop-region" aria-labelledby="deckDropTitle">
+            <div class="deck-panel-heading">
+              <h4 id="deckDropTitle">デッキ</h4>
+              <span id="deckDropCount" class="deck-panel-count">0 枚</span>
+            </div>
+            <div id="deckCards" class="deck-card-grid" role="list"></div>
+          </section>
+        </div>
 
         <div class="stats deck-stats">
           <div class="stat-card">
@@ -268,7 +289,6 @@
                 <th>カード名</th>
                 <th>クラス</th>
                 <th>レアリティ</th>
-                <th>操作</th>
               </tr>
             </thead>
             <tbody id="deckTableBody"></tbody>
@@ -315,6 +335,6 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260422a" defer></script>
+    <script src="./app.js?v=20260428b" defer></script>
   </body>
 </html>
